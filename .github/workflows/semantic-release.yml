@@ -106,21 +106,23 @@ jobs:
               echo "==========================================="
 
               pushd "${module_path}" > /dev/null
+              cat > .releaserc.yaml << 'EOF_RELEASERC'
+branches:
+  - main
+  - master
+plugins:
+  - "@semantic-release/commit-analyzer"
+  - "@semantic-release/release-notes-generator"
+  - - "@semantic-release/changelog"
+    - changelogFile: CHANGELOG.md
+  - "@semantic-release/github"
+  - - "@semantic-release/git"
+    - assets:
+        - CHANGELOG.md
+      message: "docs(changelog): update for ${nextRelease.version}"
+EOF_RELEASERC
 
-              # Build .releaserc.yaml using printf to avoid heredoc YAML conflicts
-              {
-                printf 'branches:\n'
-                printf '  - main\n'
-                printf '  - master\n'
-                printf 'tagFormat: "%s-v${version}"\n' "${package_name}"
-                printf 'plugins:\n'
-                printf '  - "@semantic-release/commit-analyzer"\n'
-                printf '  - "@semantic-release/release-notes-generator"\n'
-                printf '  - ["@semantic-release/changelog", { "changelogFile": "CHANGELOG.md" }]\n'
-                printf '  - "@semantic-release/github"\n'
-                printf '  - ["@semantic-release/git", { "assets": ["CHANGELOG.md"], "message": "docs(changelog): update for ${nextRelease.version}" }]\n'
-              } > .releaserc.yaml
-
+              echo "tagFormat: \"${package_name}-v\${version}\"" >> .releaserc.yaml
               echo "{\"name\": \"${package_name}\"}" > package.json
 
               npx semantic-release --extends semantic-release-monorepo
