@@ -27,7 +27,6 @@ jobs:
     if: |
       !startsWith(github.event.head_commit.message, 'chore(release)') &&
       !startsWith(github.event.head_commit.message, 'docs(changelog)')
-
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       SEMANTIC_RELEASE_TAG_FORMAT: ${{ inputs.tag_format || '' }}
