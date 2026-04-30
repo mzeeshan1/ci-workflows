@@ -1,6 +1,23 @@
 name: Semantic Release
 
 on:
+  workflow_call:
+    inputs:
+      tag_format:
+        description: "Tag format (e.g. 'v' or '' for default)"
+        required: false
+        type: string
+        default: ""
+      monorepo_dirs:
+        description: "Comma-separated list of monorepo directories (e.g. 'aws' or '' for single repo)"
+        required: false
+        type: string
+        default: ""
+    secrets:
+      GITHUB_TOKEN:
+        required: true
+
+  # Also allow direct push triggers for standalone use
   push:
     branches:
       - main
@@ -16,15 +33,15 @@ jobs:
       !startsWith(github.event.head_commit.message, 'docs(changelog)')
 
     env:
-      SEMANTIC_RELEASE_TAG_FORMAT: ""
-      SEMANTIC_RELEASE_MONOREPO_DIRS: "aws"   # set "" for single repo mode
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      SEMANTIC_RELEASE_TAG_FORMAT: ${{ inputs.tag_format || '' }}
+      SEMANTIC_RELEASE_MONOREPO_DIRS: ${{ inputs.monorepo_dirs || '' }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # required for semantic-release
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -47,29 +64,25 @@ jobs:
         run: |
           echo "Running single module release..."
 
-          TAG_FORMAT_LINE=""
-          if [ -n "$SEMANTIC_RELEASE_TAG_FORMAT" ]; then
-            TAG_FORMAT_LINE="tagFormat: $SEMANTIC_RELEASE_TAG_FORMAT"
-          fi
-
-          cat <<EOF > .releaserc.yaml
-branches:
-  - main
-  - master
-$TAG_FORMAT_LINE
-plugins:
-  - "@semantic-release/commit-analyzer"
-  - "@semantic-release/release-notes-generator"
-  - ["@semantic-release/changelog", { "changelogFile": "CHANGELOG.md" }]
-  - "@semantic-release/github"
-  - ["@semantic-release/git", {
-      "assets": ["CHANGELOG.md"],
-      "message": "docs(changelog): update for \${nextRelease.version}"
-    }]
-EOF
+          # Build .releaserc.yaml using printf to avoid heredoc YAML conflicts
+          {
+            printf 'branches:\n'
+            printf '  - main\n'
+            printf '  - master\n'
+            if [ -n "$SEMANTIC_RELEASE_TAG_FORMAT" ]; then
+              printf 'tagFormat: "%s${version}"\n' "$SEMANTIC_RELEASE_TAG_FORMAT"
+            fi
+            printf 'plugins:\n'
+            printf '  - "@semantic-release/commit-analyzer"\n'
+            printf '  - "@semantic-release/release-notes-generator"\n'
+            printf '  - ["@semantic-release/changelog", { "changelogFile": "CHANGELOG.md" }]\n'
+            printf '  - "@semantic-release/github"\n'
+            printf '  - ["@semantic-release/git", { "assets": ["CHANGELOG.md"], "message": "docs(changelog): update for ${nextRelease.version}" }]\n'
+          } > .releaserc.yaml
 
           echo "{\"name\":\"${GITHUB_REPOSITORY}\"}" > package.json
-          npx semantic-release      
+          npx semantic-release
+
       # -----------------------------------
       # MONOREPO MODE
       # -----------------------------------
@@ -88,7 +101,6 @@ EOF
               exit 1
             fi
 
-            # Safely iterate directories
             find "${monorepo_dir}" -mindepth 1 -maxdepth 1 -type d | while read -r module_path; do
 
               package_name=$(echo "${module_path}" | sed 's/\//-/g')
@@ -99,21 +111,19 @@ EOF
 
               pushd "${module_path}" > /dev/null
 
-              cat <<EOF > .releaserc.yaml
-branches:
-  - main
-  - master
-tagFormat: ${package_name}-v\${version}
-plugins:
-  - "@semantic-release/commit-analyzer"
-  - "@semantic-release/release-notes-generator"
-  - ["@semantic-release/changelog", { "changelogFile": "CHANGELOG.md" }]
-  - "@semantic-release/github"
-  - ["@semantic-release/git", {
-      "assets": ["CHANGELOG.md"],
-      "message": "docs(changelog): update for \${nextRelease.version}"
-    }]
-EOF
+              # Build .releaserc.yaml using printf to avoid heredoc YAML conflicts
+              {
+                printf 'branches:\n'
+                printf '  - main\n'
+                printf '  - master\n'
+                printf 'tagFormat: "%s-v${version}"\n' "${package_name}"
+                printf 'plugins:\n'
+                printf '  - "@semantic-release/commit-analyzer"\n'
+                printf '  - "@semantic-release/release-notes-generator"\n'
+                printf '  - ["@semantic-release/changelog", { "changelogFile": "CHANGELOG.md" }]\n'
+                printf '  - "@semantic-release/github"\n'
+                printf '  - ["@semantic-release/git", { "assets": ["CHANGELOG.md"], "message": "docs(changelog): update for ${nextRelease.version}" }]\n'
+              } > .releaserc.yaml
 
               echo "{\"name\": \"${package_name}\"}" > package.json
 
