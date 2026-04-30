@@ -84,6 +84,7 @@ jobs:
           fi
           echo "${SEMANTIC_RELEASE_CONFIG_GIT}" | sed 's/^/  /' >> .releaserc.yaml
           echo "{\"name\":\"${GITHUB_REPOSITORY}\"}" > package.json
+          cat .releaserc.yaml
           npx semantic-release
 
       # -----------------------------------
