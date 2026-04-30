@@ -14,7 +14,7 @@ on:
         type: string
         default: ""
     secrets:
-      GITHUB_TOKEN:
+      GH_TOKEN:
         required: true
 
   # Also allow direct push triggers for standalone use
@@ -33,7 +33,7 @@ jobs:
       !startsWith(github.event.head_commit.message, 'docs(changelog)')
 
     env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       SEMANTIC_RELEASE_TAG_FORMAT: ${{ inputs.tag_format || '' }}
       SEMANTIC_RELEASE_MONOREPO_DIRS: ${{ inputs.monorepo_dirs || '' }}
 
