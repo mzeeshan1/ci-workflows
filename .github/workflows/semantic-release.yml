@@ -62,7 +62,7 @@ jobs:
       - name: Publish single release
         if: env.SEMANTIC_RELEASE_MONOREPO_DIRS == ''
         run: |
-          echo "$GH_TOKEN"
+          echo "$GITHUB_TOKEN"
           echo "Running single module release..."
 
           # Build .releaserc.yaml using printf to avoid heredoc YAML conflicts
