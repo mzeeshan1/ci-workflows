@@ -54,7 +54,7 @@ jobs:
             TAG_FORMAT_LINE=$(printf 'tagFormat: "%s${version}"\n' "$SEMANTIC_RELEASE_TAG_FORMAT")
           fi
 
-          bash -c "cat << 'EOF' > .releaserc.yaml
+          bash -c 'cat << "EOF" > .releaserc.yaml
 branches:
   - main
   - master
@@ -65,7 +65,7 @@ plugins:
   - [\"@semantic-release/changelog\", { \"changelogFile\": \"CHANGELOG.md\" }]
   - \"@semantic-release/github\"
   - [\"@semantic-release/git\", { \"assets\": [\"CHANGELOG.md\"], \"message\": \"docs(changelog): update for \${nextRelease.version}\" }]
-EOF"          
+EOF'
           echo "{\"name\":\"${GITHUB_REPOSITORY}\"}" > package.json
           npx semantic-release
 
@@ -97,7 +97,7 @@ EOF"
 
               pushd "${module_path}" > /dev/null
 
-              bash -c "cat << 'EOF' > .releaserc.yaml
+              bash -c 'cat << "EOF" > .releaserc.yaml
 branches:
   - main
   - master
@@ -108,7 +108,7 @@ plugins:
   - [\"@semantic-release/changelog\", { \"changelogFile\": \"CHANGELOG.md\" }]
   - \"@semantic-release/github\"
   - [\"@semantic-release/git\", { \"assets\": [\"CHANGELOG.md\"], \"message\": \"docs(changelog): update for \${nextRelease.version}\" }]
-EOF"
+EOF'
               echo "{\"name\": \"${package_name}\"}" > package.json
 
               npx semantic-release --extends semantic-release-monorepo
