@@ -46,37 +46,26 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install --silent semantic-release@24.1.0 \
-            @semantic-release/changelog@6.0.3 \
-            @semantic-release/git@10.0.1 \
-            @semantic-release/github@11.0.1 \
-            semantic-release-monorepo@8.0.2
-
-      # -----------------------------------
-      # SINGLE REPO MODE
-      # -----------------------------------
-      - name: Publish single release
-        if: env.SEMANTIC_RELEASE_MONOREPO_DIRS == ''
-        run: |
           echo "$GITHUB_TOKEN"
           echo "Running single module release..."
 
-          # Build .releaserc.yaml using printf to avoid heredoc YAML conflicts
-          {
-            printf 'branches:\n'
-            printf '  - main\n'
-            printf '  - master\n'
-            if [ -n "$SEMANTIC_RELEASE_TAG_FORMAT" ]; then
-              printf 'tagFormat: "%s${version}"\n' "$SEMANTIC_RELEASE_TAG_FORMAT"
-            fi
-            printf 'plugins:\n'
-            printf '  - "@semantic-release/commit-analyzer"\n'
-            printf '  - "@semantic-release/release-notes-generator"\n'
-            printf '  - ["@semantic-release/changelog", { "changelogFile": "CHANGELOG.md" }]\n'
-            printf '  - "@semantic-release/github"\n'
-            printf '  - ["@semantic-release/git", { "assets": ["CHANGELOG.md"], "message": "docs(changelog): update for ${nextRelease.version}" }]\n'
-          } > .releaserc.yaml
+          TAG_FORMAT_LINE=""
+          if [ -n "$SEMANTIC_RELEASE_TAG_FORMAT" ]; then
+            TAG_FORMAT_LINE=$(printf 'tagFormat: "%s${version}"\n' "$SEMANTIC_RELEASE_TAG_FORMAT")
+          fi
 
+          bash -c "cat << 'EOF' > .releaserc.yaml
+branches:
+  - main
+  - master
+$TAG_FORMAT_LINE
+plugins:
+  - \"@semantic-release/commit-analyzer\"
+  - \"@semantic-release/release-notes-generator\"
+  - [\"@semantic-release/changelog\", { \"changelogFile\": \"CHANGELOG.md\" }]
+  - \"@semantic-release/github\"
+  - [\"@semantic-release/git\", { \"assets\": [\"CHANGELOG.md\"], \"message\": \"docs(changelog): update for \${nextRelease.version}\" }]
+EOF"          
           echo "{\"name\":\"${GITHUB_REPOSITORY}\"}" > package.json
           npx semantic-release
 
@@ -108,20 +97,18 @@ jobs:
 
               pushd "${module_path}" > /dev/null
 
-              # Build .releaserc.yaml using printf to avoid heredoc YAML conflicts
-              {
-                printf 'branches:\n'
-                printf '  - main\n'
-                printf '  - master\n'
-                printf 'tagFormat: "%s-v${version}"\n' "${package_name}"
-                printf 'plugins:\n'
-                printf '  - "@semantic-release/commit-analyzer"\n'
-                printf '  - "@semantic-release/release-notes-generator"\n'
-                printf '  - ["@semantic-release/changelog", { "changelogFile": "CHANGELOG.md" }]\n'
-                printf '  - "@semantic-release/github"\n'
-                printf '  - ["@semantic-release/git", { "assets": ["CHANGELOG.md"], "message": "docs(changelog): update for ${nextRelease.version}" }]\n'
-              } > .releaserc.yaml
-
+              bash -c "cat << 'EOF' > .releaserc.yaml
+branches:
+  - main
+  - master
+tagFormat: \"${package_name}-v\${version}\"
+plugins:
+  - \"@semantic-release/commit-analyzer\"
+  - \"@semantic-release/release-notes-generator\"
+  - [\"@semantic-release/changelog\", { \"changelogFile\": \"CHANGELOG.md\" }]
+  - \"@semantic-release/github\"
+  - [\"@semantic-release/git\", { \"assets\": [\"CHANGELOG.md\"], \"message\": \"docs(changelog): update for \${nextRelease.version}\" }]
+EOF"
               echo "{\"name\": \"${package_name}\"}" > package.json
 
               npx semantic-release --extends semantic-release-monorepo
