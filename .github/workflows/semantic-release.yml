@@ -13,9 +13,6 @@ on:
         required: false
         type: string
         default: ""
-    secrets:
-      GITHUB_TOKEN:
-        required: true
 
   # Also allow direct push triggers for standalone use
   push:
