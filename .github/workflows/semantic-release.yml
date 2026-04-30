@@ -29,6 +29,7 @@ jobs:
     permissions:
       contents: write
       issues: write
+      pull-requests: write
     # Skip release commits (prevents infinite loop)
     if: |
       !startsWith(github.event.head_commit.message, 'chore(release)') &&
