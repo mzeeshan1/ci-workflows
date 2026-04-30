@@ -1,0 +1,124 @@
+name: Semantic Release
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    # Skip release commits (prevents infinite loop)
+    if: |
+      !startsWith(github.event.head_commit.message, 'chore(release)') &&
+      !startsWith(github.event.head_commit.message, 'docs(changelog)')
+
+    env:
+      SEMANTIC_RELEASE_TAG_FORMAT: ""
+      SEMANTIC_RELEASE_MONOREPO_DIRS: "aws"   # set "" for single repo mode
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # required for semantic-release
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+
+      - name: Install dependencies
+        run: |
+          npm install --silent semantic-release@24.0.0 \
+            @semantic-release/changelog@6.0.3 \
+            @semantic-release/git@10.0.1 \
+            @semantic-release/github \
+            semantic-release-monorepo@8.0.2
+
+      # -----------------------------------
+      # SINGLE REPO MODE
+      # -----------------------------------
+      - name: Publish single release
+        if: env.SEMANTIC_RELEASE_MONOREPO_DIRS == ''
+        run: |
+          echo "Running single module release..."
+
+          TAG_FORMAT_LINE=""
+          if [ -n "$SEMANTIC_RELEASE_TAG_FORMAT" ]; then
+            TAG_FORMAT_LINE="tagFormat: $SEMANTIC_RELEASE_TAG_FORMAT"
+          fi
+
+          cat <<EOF > .releaserc.yaml
+branches:
+  - main
+  - master
+$TAG_FORMAT_LINE
+plugins:
+  - "@semantic-release/commit-analyzer"
+  - "@semantic-release/release-notes-generator"
+  - ["@semantic-release/changelog", { "changelogFile": "CHANGELOG.md" }]
+  - "@semantic-release/github"
+  - ["@semantic-release/git", {
+      "assets": ["CHANGELOG.md"],
+      "message": "docs(changelog): update for \${nextRelease.version}"
+    }]
+EOF
+
+          echo "{\"name\":\"${GITHUB_REPOSITORY}\"}" > package.json
+          npx semantic-release      
+      # -----------------------------------
+      # MONOREPO MODE
+      # -----------------------------------
+      - name: Publish multiple releases
+        if: env.SEMANTIC_RELEASE_MONOREPO_DIRS != ''
+        run: |
+          set -euo pipefail
+
+          echo "Running monorepo release..."
+
+          IFS=',' read -r -a monorepo_dirs <<< "${SEMANTIC_RELEASE_MONOREPO_DIRS}"
+
+          for monorepo_dir in "${monorepo_dirs[@]}"; do
+            if [ ! -d "${monorepo_dir}" ]; then
+              echo "Directory ${monorepo_dir} does not exist"
+              exit 1
+            fi
+
+            # Safely iterate directories
+            find "${monorepo_dir}" -mindepth 1 -maxdepth 1 -type d | while read -r module_path; do
+
+              package_name=$(echo "${module_path}" | sed 's/\//-/g')
+
+              echo "==========================================="
+              echo "Releasing ${package_name}"
+              echo "==========================================="
+
+              pushd "${module_path}" > /dev/null
+
+              cat <<EOF > .releaserc.yaml
+branches:
+  - main
+  - master
+tagFormat: ${package_name}-v\${version}
+plugins:
+  - "@semantic-release/commit-analyzer"
+  - "@semantic-release/release-notes-generator"
+  - ["@semantic-release/changelog", { "changelogFile": "CHANGELOG.md" }]
+  - "@semantic-release/github"
+  - ["@semantic-release/git", {
+      "assets": ["CHANGELOG.md"],
+      "message": "docs(changelog): update for \${nextRelease.version}"
+    }]
+EOF
+
+              echo "{\"name\": \"${package_name}\"}" > package.json
+
+              npx semantic-release --extends semantic-release-monorepo
+
+              popd > /dev/null
+            done
+          done
