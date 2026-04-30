@@ -80,7 +80,6 @@ jobs:
           echo "${SEMANTIC_RELEASE_CONFIG_GIT}" | sed 's/^/  /' >> .releaserc.yaml
           cat .releaserc.yaml
           echo "{\"name\":\"${GITHUB_REPOSITORY}\"}" > package.json
-          *semantic_release_dependencies
           npx semantic-release
 
       # -----------------------------------
