@@ -14,7 +14,7 @@ on:
         type: string
         default: ""
     secrets:
-      GH_TOKEN:
+      GITHUB_TOKEN:
         required: true
 
   # Also allow direct push triggers for standalone use
@@ -26,15 +26,13 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     # Skip release commits (prevents infinite loop)
     if: |
       !startsWith(github.event.head_commit.message, 'chore(release)') &&
       !startsWith(github.event.head_commit.message, 'docs(changelog)')
 
     env:
-      GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       SEMANTIC_RELEASE_TAG_FORMAT: ${{ inputs.tag_format || '' }}
       SEMANTIC_RELEASE_MONOREPO_DIRS: ${{ inputs.monorepo_dirs || '' }}
 
