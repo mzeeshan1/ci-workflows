@@ -78,9 +78,11 @@ jobs:
         run: |
           echo "Running single module release..."
           if [ -n "${SEMANTIC_RELEASE_TAG_FORMAT}" ]; then
-            echo -e "tagFormat: ${SEMANTIC_RELEASE_TAG_FORMAT}\n${SEMANTIC_RELEASE_CONFIG_BASE}" > .releaserc.yaml
+            printf 'tagFormat: "%s${version}"\n' "${SEMANTIC_RELEASE_TAG_FORMAT}" > .releaserc.yaml
+            #                          ↑ safe inside single-quoted printf format string
+            printf '%s\n' "${SEMANTIC_RELEASE_CONFIG_BASE}" >> .releaserc.yaml
           else
-            echo "${SEMANTIC_RELEASE_CONFIG_BASE}" > .releaserc.yaml
+            printf '%s\n' "${SEMANTIC_RELEASE_CONFIG_BASE}" > .releaserc.yaml
           fi
           echo "${SEMANTIC_RELEASE_CONFIG_GIT}" | sed 's/^/  /' >> .releaserc.yaml
           echo "{\"name\":\"${GITHUB_REPOSITORY}\"}" > package.json
