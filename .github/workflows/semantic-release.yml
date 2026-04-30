@@ -26,7 +26,9 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write
+      issues: write
     # Skip release commits (prevents infinite loop)
     if: |
       !startsWith(github.event.head_commit.message, 'chore(release)') &&
