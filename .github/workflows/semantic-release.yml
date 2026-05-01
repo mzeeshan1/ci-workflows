@@ -108,6 +108,8 @@ jobs:
         run: |
           set -euo pipefail
           echo "Running explicit dirs release..."
+          ROOT_DIR=$(pwd)
+          export NODE_PATH="${ROOT_DIR}/node_modules"
 
           IFS=',' read -r -a release_dirs <<< "${SEMANTIC_RELEASE_RELEASE_DIRS}"
 
@@ -141,9 +143,6 @@ jobs:
         if: env.SEMANTIC_RELEASE_MONOREPO_DIRS != ''
         run: |
           set -euo pipefail
-
-          ROOT_DIR=$(pwd)
-          export NODE_PATH="${ROOT_DIR}/node_modules"
 
           echo "Running monorepo release..."
 
