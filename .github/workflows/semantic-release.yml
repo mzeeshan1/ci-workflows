@@ -128,7 +128,6 @@ jobs:
           if [ -f "chart/Chart.yaml" ] && [ "${{ steps.changes.outputs.chart_changed }}" = "true" ]; then
             echo "---- Chart release ----"
             if [ -f "chart/Chart.yaml" ]; then
-              echo "---- Chart release ----"
               cd chart
               # chart tag format
               printf 'tagFormat: "chart-v${version}"\n' > .releaserc.yaml
@@ -138,7 +137,7 @@ jobs:
               # add git plugin
               echo "${SEMANTIC_RELEASE_CONFIG_GIT}" | sed 's/^/  /' >> .releaserc.yaml
               echo "{\"name\":\"${REPO_NAME}-chart\"}" > package.json
-              npx semantic-release
+              npx semantic-release --extends semantic-release-monorepo
 
               cd -
             else
