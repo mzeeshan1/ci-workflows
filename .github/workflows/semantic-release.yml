@@ -126,7 +126,7 @@ jobs:
               echo "********************************************************************************"
               echo "Launching semantic-release for $package_name package..."
               echo "********************************************************************************"
-              npx semantic-release --extends semantic-release-monorepo
+              npx semantic-release 
               cd -
             else
               echo "Release directory $package_path does not exist"
