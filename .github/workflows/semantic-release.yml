@@ -137,6 +137,7 @@ jobs:
               # add git plugin
               echo "${SEMANTIC_RELEASE_CONFIG_GIT}" | sed 's/^/  /' >> .releaserc.yaml
               echo "{\"name\":\"${REPO_NAME}-chart\"}" > package.json
+              cat .releaserc.yaml
               npx semantic-release --extends semantic-release-monorepo
 
               cd -
