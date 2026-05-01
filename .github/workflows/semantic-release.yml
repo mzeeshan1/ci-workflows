@@ -74,48 +74,79 @@ jobs:
             @semantic-release/github@11.0.1 \
             semantic-release-monorepo@8.0.2 \
             semantic-release-helm@2.2.0
+      - name: Detect changes
+        id: changes
+        run: |
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          if echo "$CHANGED_FILES" | grep -q "^chart/"; then
+            echo "chart_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "chart_changed=false" >> $GITHUB_OUTPUT
+          fi
+
+          if echo "$CHANGED_FILES" | grep -vq "^chart/"; then
+            echo "root_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "root_changed=false" >> $GITHUB_OUTPUT
+          fi
 
       # -----------------------------------
-      # SINGLE REPO MODE
+      # MONOREPO MODE
       # -----------------------------------
       - name: Publish single release
         if: env.SEMANTIC_RELEASE_MONOREPO_DIRS == ''
         run: |
           echo "Running single module release..."
-          REPO_NAME="${GITHUB_REPOSITORY#*/}"
-          if [ -n "${SEMANTIC_RELEASE_TAG_FORMAT}" ]; then
-            printf 'tagFormat: "%s${version}"\n' "${SEMANTIC_RELEASE_TAG_FORMAT}" > .releaserc.yaml
-            printf '%s\n' "${SEMANTIC_RELEASE_CONFIG_BASE}" >> .releaserc.yaml
-          else
-            printf '%s\n' "${SEMANTIC_RELEASE_CONFIG_BASE}" > .releaserc.yaml
-          fi
-          echo "${SEMANTIC_RELEASE_CONFIG_GIT}" | sed 's/^/  /' >> .releaserc.yaml
-          echo "{\"name\":\"${REPO_NAME}\"}" > package.json
-          npx semantic-release
 
-          # -----------------------------------
-          # CHART RELEASE (if exists)
-          # -----------------------------------
-          if [ -f "chart/Chart.yaml" ]; then
-            echo "---- Chart release ----"
-            cd chart
-            # chart tag format
-            printf 'tagFormat: "chart-v${version}"\n' > .releaserc.yaml
-            printf '%s\n' "${SEMANTIC_RELEASE_CONFIG_BASE}" >> .releaserc.yaml
-            # add helm plugin
-            echo "${SEMANTIC_RELEASE_CONFIG_HELM}" | sed 's/^/  /' >> .releaserc.yaml
-            # add git plugin
+          ########################################
+          # 🔹 ROOT RELEASE
+          ########################################
+          if [ "${{ steps.changes.outputs.root_changed }}" = "true" ]; then
+            echo "---- Root release ----"
+            REPO_NAME="${GITHUB_REPOSITORY#*/}"
+            if [ -n "${SEMANTIC_RELEASE_TAG_FORMAT}" ]; then
+              printf 'tagFormat: "%s${version}"\n' "${SEMANTIC_RELEASE_TAG_FORMAT}" > .releaserc.yaml
+              printf '%s\n' "${SEMANTIC_RELEASE_CONFIG_BASE}" >> .releaserc.yaml
+            else
+              printf '%s\n' "${SEMANTIC_RELEASE_CONFIG_BASE}" > .releaserc.yaml
+            fi
             echo "${SEMANTIC_RELEASE_CONFIG_GIT}" | sed 's/^/  /' >> .releaserc.yaml
-            echo "{\"name\":\"${REPO_NAME}-chart\"}" > package.json
+            echo "{\"name\":\"${REPO_NAME}\"}" > package.json
             npx semantic-release
-
-            cd -
           else
-            echo "No chart found, skipping chart release"
+            echo "No root changes, skipping root release"
           fi
-      # -----------------------------------
-      # MONOREPO MODE
-      # -----------------------------------
+
+
+          ########################################
+          # 🔹 CHART RELEASE
+          ########################################
+          if [ -f "chart/Chart.yaml" ] && [ "${{ steps.changes.outputs.chart_changed }}" = "true" ]; then
+            echo "---- Chart release ----"
+            if [ -f "chart/Chart.yaml" ]; then
+              echo "---- Chart release ----"
+              cd chart
+              # chart tag format
+              printf 'tagFormat: "chart-v${version}"\n' > .releaserc.yaml
+              printf '%s\n' "${SEMANTIC_RELEASE_CONFIG_BASE}" >> .releaserc.yaml
+              # add helm plugin
+              echo "${SEMANTIC_RELEASE_CONFIG_HELM}" | sed 's/^/  /' >> .releaserc.yaml
+              # add git plugin
+              echo "${SEMANTIC_RELEASE_CONFIG_GIT}" | sed 's/^/  /' >> .releaserc.yaml
+              echo "{\"name\":\"${REPO_NAME}-chart\"}" > package.json
+              npx semantic-release
+
+              cd -
+            else
+              echo "No chart found, skipping chart release"
+            fi
+          else
+            echo "No chart changes, skipping chart release"
+          fi
       - name: Publish multiple releases
         if: env.SEMANTIC_RELEASE_MONOREPO_DIRS != ''
         run: |
