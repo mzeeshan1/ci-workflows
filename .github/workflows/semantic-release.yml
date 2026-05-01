@@ -79,7 +79,7 @@ jobs:
       # SINGLE REPO MODE
       # -----------------------------------
       - name: Publish single release
-        if: env.SEMANTIC_RELEASE_MONOREPO_DIRS == '' && env.SEMANTIC_RELEASE_RELEASE_DIRS == ''
+        if: env.SEMANTIC_RELEASE_MONOREPO_DIRS == ''
         run: |
           echo "Running single module release..."
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
@@ -98,21 +98,15 @@ jobs:
           # -----------------------------------
           if [ -f "chart/Chart.yaml" ]; then
             echo "---- Chart release ----"
-
             cd chart
-
             # chart tag format
             printf 'tagFormat: "chart-v${version}"\n' > .releaserc.yaml
             printf '%s\n' "${SEMANTIC_RELEASE_CONFIG_BASE}" >> .releaserc.yaml
-
             # add helm plugin
             echo "${SEMANTIC_RELEASE_CONFIG_HELM}" | sed 's/^/  /' >> .releaserc.yaml
-
             # add git plugin
             echo "${SEMANTIC_RELEASE_CONFIG_GIT}" | sed 's/^/  /' >> .releaserc.yaml
-
             echo "{\"name\":\"${REPO_NAME}-chart\"}" > package.json
-
             npx semantic-release
 
             cd -
