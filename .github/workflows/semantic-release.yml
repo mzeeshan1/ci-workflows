@@ -13,6 +13,11 @@ on:
         required: false
         type: string
         default: ""
+      release_dirs:
+        description: "Comma-separated explicit dirs to release e.g. '.,.chart/subman'"
+        required: false
+        type: string
+        default: ""
 
   # Also allow direct push triggers for standalone use
   push:
@@ -52,7 +57,7 @@ jobs:
             message: "chore(release): update chart for ${nextRelease.version}"
       SEMANTIC_RELEASE_CONFIG_HELM: |
         - - semantic-release-helm
-          - chartPath: ./chart
+          - chartPath: .
             onlyUpdateVersion: true
 
     steps:
@@ -84,18 +89,49 @@ jobs:
           echo "Running single module release..."
           if [ -n "${SEMANTIC_RELEASE_TAG_FORMAT}" ]; then
             printf 'tagFormat: "%s${version}"\n' "${SEMANTIC_RELEASE_TAG_FORMAT}" > .releaserc.yaml
-            #                          ↑ safe inside single-quoted printf format string
             printf '%s\n' "${SEMANTIC_RELEASE_CONFIG_BASE}" >> .releaserc.yaml
           else
             printf '%s\n' "${SEMANTIC_RELEASE_CONFIG_BASE}" > .releaserc.yaml
           fi
-          if [ -f "chart/Chart.yaml" ]; then
+          if [ -f "Chart.yaml" ]; then
             echo "${SEMANTIC_RELEASE_CONFIG_HELM}" | sed 's/^/  /' >> .releaserc.yaml
           fi
           echo "${SEMANTIC_RELEASE_CONFIG_GIT}" | sed 's/^/  /' >> .releaserc.yaml
           echo "{\"name\":\"${GITHUB_REPOSITORY}\"}" > package.json
-          cat .releaserc.yaml
           npx semantic-release
+      # -----------------------------------
+      # EXPLICIT DIRS MODE
+      # -----------------------------------
+      - name: Publish explicit releases
+        if: env.SEMANTIC_RELEASE_RELEASE_DIRS != ''
+        run: |
+          set -euo pipefail
+          echo "Running explicit dirs release..."
+
+          IFS=',' read -r -a release_dirs <<< "${SEMANTIC_RELEASE_RELEASE_DIRS}"
+
+          for package_path in "${release_dirs[@]}"; do
+            if [ -d "${package_path}" ]; then
+              package_name="${GITHUB_REPOSITORY}-$(echo "${package_path}" | sed 's/\//-/g')"
+              cd "${package_path}"
+              echo "${SEMANTIC_RELEASE_CONFIG_BASE}" > .releaserc.yaml
+              echo "${SEMANTIC_RELEASE_CONFIG_GIT}" | sed 's/^/  /' >> .releaserc.yaml
+
+              if [ -f "Chart.yaml" ]; then
+                echo "${SEMANTIC_RELEASE_CONFIG_HELM}" | sed 's/^/  /' >> .releaserc.yaml
+              fi
+
+              echo "{\"name\": \"$package_name\"}" > package.json
+              echo "********************************************************************************"
+              echo "Launching semantic-release for $package_name package..."
+              echo "********************************************************************************"
+              npx semantic-release --extends semantic-release-monorepo
+              cd -
+            else
+              echo "Release directory $package_path does not exist"
+              exit 1
+            fi
+          done
 
       # -----------------------------------
       # MONOREPO MODE
