@@ -80,6 +80,7 @@ jobs:
             @semantic-release/github@11.0.1 \
             semantic-release-monorepo@8.0.2 \
             semantic-release-helm@2.2.0
+          echo "SEMANTIC_RELEASE_MONOREPO_PATH=$(npm root)/semantic-release-monorepo" >> "$GITHUB_ENV"
 
       # -----------------------------------
       # SINGLE REPO MODE
@@ -134,7 +135,7 @@ jobs:
               echo "********************************************************************************"
               echo "Launching semantic-release for $package_name package..."
               echo "********************************************************************************"
-              npx semantic-release --extends semantic-release-monorepo
+              npx semantic-release --extends "${SEMANTIC_RELEASE_MONOREPO_PATH}"
               cd -
             else
               echo "Release directory $package_path does not exist"
@@ -181,7 +182,7 @@ jobs:
                 echo "********************************************************************************"
                 echo "Launching semantic-release for $package_name package..."
                 echo "********************************************************************************"
-                npx semantic-release --extends semantic-release-monorepo
+                npx semantic-release --extends "${SEMANTIC_RELEASE_MONOREPO_PATH}"
                 cd -
               done
             else
