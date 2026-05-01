@@ -115,10 +115,11 @@ jobs:
             if [ -d "${package_path}" ]; then
 
               # Use repo name for root dir, otherwise derive from path
+              repo_name="${GITHUB_REPOSITORY#*/}"
               if [ "${package_path}" = "." ]; then
-                package_name="${GITHUB_REPOSITORY}"
+                package_name="${repo_name}"
               else
-                package_name="${GITHUB_REPOSITORY}-$(echo "${package_path}" | sed 's/\//-/g')"
+                package_name="${repo_name}-$(echo "${package_path}" | sed 's/\//-/g' | sed 's/^\.//')"
               fi
 
               cd "${package_path}"
@@ -134,7 +135,7 @@ jobs:
               echo "********************************************************************************"
               echo "Launching semantic-release for $package_name package..."
               echo "********************************************************************************"
-              npm install semantic-release@8.0.2 
+              npm install semantic-release-monorepo@8.0.2 
               npx semantic-release --extends semantic-release-monorepo
               cd -
             else
