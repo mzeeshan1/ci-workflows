@@ -74,7 +74,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install semantic-release@24.1.0 \
+          npm install --silent semantic-release@24.1.0 \
             @semantic-release/changelog@6.0.3 \
             @semantic-release/git@10.0.1 \
             @semantic-release/github@11.0.1 \
@@ -85,7 +85,7 @@ jobs:
       # SINGLE REPO MODE
       # -----------------------------------
       - name: Publish single release
-        if: env.SEMANTIC_RELEASE_MONOREPO_DIRS == ''
+        if: env.SEMANTIC_RELEASE_MONOREPO_DIRS == '' && env.SEMANTIC_RELEASE_RELEASE_DIRS == ''
         run: |
           echo "Running single module release..."
           if [ -n "${SEMANTIC_RELEASE_TAG_FORMAT}" ]; then
@@ -108,20 +108,26 @@ jobs:
         run: |
           set -euo pipefail
           echo "Running explicit dirs release..."
-          ROOT_DIR=$(pwd)
-          export NODE_PATH="${ROOT_DIR}/node_modules"
 
           IFS=',' read -r -a release_dirs <<< "${SEMANTIC_RELEASE_RELEASE_DIRS}"
 
           for package_path in "${release_dirs[@]}"; do
             if [ -d "${package_path}" ]; then
-              package_name="${GITHUB_REPOSITORY}-$(echo "${package_path}" | sed 's/\//-/g')"
+
+              # Use repo name for root dir, otherwise derive from path
+              if [ "${package_path}" = "." ]; then
+                package_name="${GITHUB_REPOSITORY}"
+              else
+                package_name="${GITHUB_REPOSITORY}-$(echo "${package_path}" | sed 's/\//-/g')"
+              fi
+
               cd "${package_path}"
+
               echo "${SEMANTIC_RELEASE_CONFIG_BASE}" > .releaserc.yaml
               echo "${SEMANTIC_RELEASE_CONFIG_GIT}" | sed 's/^/  /' >> .releaserc.yaml
 
               if [ -f "Chart.yaml" ]; then
-                echo "${SEMANTIC_RELEASE_CONFIG_HELM}" | sed 's/^/  /' >> .releaserc.yaml
+                echo "${SEMANTIC_RELEASE_CONFIG_HELM:-}" | sed 's/^/  /' >> .releaserc.yaml
               fi
 
               echo "{\"name\": \"$package_name\"}" > package.json
