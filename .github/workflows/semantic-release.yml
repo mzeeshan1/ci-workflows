@@ -135,7 +135,7 @@ jobs:
               echo "********************************************************************************"
               echo "Launching semantic-release for $package_name package..."
               echo "********************************************************************************"
-              npm install semantic-release-monorepo@8.0.2 
+              npm install semantic-release@8.0.2 
               npx semantic-release --extends semantic-release-monorepo
               cd -
             else
