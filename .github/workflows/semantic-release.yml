@@ -127,7 +127,7 @@ jobs:
               echo "${SEMANTIC_RELEASE_CONFIG_GIT}" | sed 's/^/  /' >> .releaserc.yaml
 
               if [ -f "Chart.yaml" ]; then
-                echo "${SEMANTIC_RELEASE_CONFIG_HELM:-}" | sed 's/^/  /' >> .releaserc.yaml
+                echo "${SEMANTIC_RELEASE_CONFIG_HELM}" | sed 's/^/  /' >> .releaserc.yaml
               fi
 
               echo "{\"name\": \"$package_name\"}" > package.json
