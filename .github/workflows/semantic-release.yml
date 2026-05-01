@@ -125,6 +125,7 @@ jobs:
           ########################################
           # 🔹 CHART RELEASE
           ########################################
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
           if [ -f "chart/Chart.yaml" ] && [ "${{ steps.changes.outputs.chart_changed }}" = "true" ]; then
             echo "---- Chart release ----"
             if [ -f "chart/Chart.yaml" ]; then
@@ -137,6 +138,8 @@ jobs:
               # add git plugin
               echo "${SEMANTIC_RELEASE_CONFIG_GIT}" | sed 's/^/  /' >> .releaserc.yaml
               echo "{\"name\":\"${REPO_NAME}-chart\"}" > package.json
+              echo "The repo name is:"
+              echo ${REPO_NAME}
               cat .releaserc.yaml
               npx semantic-release --extends semantic-release-monorepo
 
