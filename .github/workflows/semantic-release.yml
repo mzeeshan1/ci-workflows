@@ -58,7 +58,7 @@ jobs:
             message: "chore(release): update chart for ${nextRelease.version}"
       SEMANTIC_RELEASE_CONFIG_HELM: |
         - - semantic-release-helm
-          - chartPath: chart
+          - chartPath: .
             onlyUpdateVersion: true
 
     steps:
