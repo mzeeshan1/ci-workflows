@@ -131,6 +131,8 @@ jobs:
                 echo "${SEMANTIC_RELEASE_CONFIG_HELM}" | sed 's/^/  /' >> .releaserc.yaml
               fi
 
+              cat .releaserc.yaml
+
               echo "{\"name\": \"$package_name\"}" > package.json
               echo "********************************************************************************"
               echo "Launching semantic-release for $package_name package..."
