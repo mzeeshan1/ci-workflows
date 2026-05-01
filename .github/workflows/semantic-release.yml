@@ -13,11 +13,6 @@ on:
         required: false
         type: string
         default: ""
-      release_dirs:
-        description: "Comma-separated explicit dirs to release e.g. '.,.chart/subman'"
-        required: false
-        type: string
-        default: ""
 
   # Also allow direct push triggers for standalone use
   push:
@@ -36,7 +31,6 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       SEMANTIC_RELEASE_TAG_FORMAT: ${{ inputs.tag_format || '' }}
       SEMANTIC_RELEASE_MONOREPO_DIRS: ${{ inputs.monorepo_dirs || '' }}
-      SEMANTIC_RELEASE_RELEASE_DIRS: ${{ inputs.release_dirs || '' }}
       SEMANTIC_RELEASE_CONFIG_BASE: |
         branches:
           - main
@@ -88,63 +82,43 @@ jobs:
         if: env.SEMANTIC_RELEASE_MONOREPO_DIRS == '' && env.SEMANTIC_RELEASE_RELEASE_DIRS == ''
         run: |
           echo "Running single module release..."
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
           if [ -n "${SEMANTIC_RELEASE_TAG_FORMAT}" ]; then
             printf 'tagFormat: "%s${version}"\n' "${SEMANTIC_RELEASE_TAG_FORMAT}" > .releaserc.yaml
             printf '%s\n' "${SEMANTIC_RELEASE_CONFIG_BASE}" >> .releaserc.yaml
           else
             printf '%s\n' "${SEMANTIC_RELEASE_CONFIG_BASE}" > .releaserc.yaml
           fi
-          if [ -f "Chart.yaml" ]; then
-            echo "${SEMANTIC_RELEASE_CONFIG_HELM}" | sed 's/^/  /' >> .releaserc.yaml
-          fi
           echo "${SEMANTIC_RELEASE_CONFIG_GIT}" | sed 's/^/  /' >> .releaserc.yaml
-          echo "{\"name\":\"${GITHUB_REPOSITORY}\"}" > package.json
+          echo "{\"name\":\"${REPO_NAME}\"}" > package.json
           npx semantic-release
-      # -----------------------------------
-      # EXPLICIT DIRS MODE
-      # -----------------------------------
-      - name: Publish explicit releases
-        if: env.SEMANTIC_RELEASE_RELEASE_DIRS != ''
-        run: |
-          set -euo pipefail
-          echo "Running explicit dirs release..."
 
-          IFS=',' read -r -a release_dirs <<< "${SEMANTIC_RELEASE_RELEASE_DIRS}"
+          # -----------------------------------
+          # CHART RELEASE (if exists)
+          # -----------------------------------
+          if [ -f "chart/Chart.yaml" ]; then
+            echo "---- Chart release ----"
 
-          for package_path in "${release_dirs[@]}"; do
-            if [ -d "${package_path}" ]; then
+            cd chart
 
-              # Use repo name for root dir, otherwise derive from path
-              repo_name="${GITHUB_REPOSITORY#*/}"
-              if [ "${package_path}" = "." ]; then
-                package_name="${repo_name}"
-              else
-                package_name="${repo_name}-$(echo "${package_path}" | sed 's/\//-/g' | sed 's/^\.//')"
-              fi
+            # chart tag format
+            printf 'tagFormat: "chart-v${version}"\n' > .releaserc.yaml
+            printf '%s\n' "${SEMANTIC_RELEASE_CONFIG_BASE}" >> .releaserc.yaml
 
-              cd "${package_path}"
+            # add helm plugin
+            echo "${SEMANTIC_RELEASE_CONFIG_HELM}" | sed 's/^/  /' >> .releaserc.yaml
 
-              echo "${SEMANTIC_RELEASE_CONFIG_BASE}" > .releaserc.yaml
-              echo "${SEMANTIC_RELEASE_CONFIG_GIT}" | sed 's/^/  /' >> .releaserc.yaml
+            # add git plugin
+            echo "${SEMANTIC_RELEASE_CONFIG_GIT}" | sed 's/^/  /' >> .releaserc.yaml
 
-              if [ -f "Chart.yaml" ]; then
-                echo "${SEMANTIC_RELEASE_CONFIG_HELM}" | sed 's/^/  /' >> .releaserc.yaml
-              fi
+            echo "{\"name\":\"${REPO_NAME}-chart\"}" > package.json
 
-              cat .releaserc.yaml
+            npx semantic-release
 
-              echo "{\"name\": \"$package_name\"}" > package.json
-              echo "********************************************************************************"
-              echo "Launching semantic-release for $package_name package..."
-              echo "********************************************************************************"
-              npx semantic-release --extends semantic-release-monorepo
-              cd -
-            else
-              echo "Release directory $package_path does not exist"
-              exit 1
-            fi
-          done
-
+            cd -
+          else
+            echo "No chart found, skipping chart release"
+          fi
       # -----------------------------------
       # MONOREPO MODE
       # -----------------------------------
