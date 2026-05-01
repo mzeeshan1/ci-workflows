@@ -142,6 +142,9 @@ jobs:
         run: |
           set -euo pipefail
 
+          ROOT_DIR=$(pwd)
+          export NODE_PATH="${ROOT_DIR}/node_modules"
+
           echo "Running monorepo release..."
 
           IFS=',' read -r -a monorepo_dirs <<< "${SEMANTIC_RELEASE_MONOREPO_DIRS}"
