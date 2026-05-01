@@ -50,6 +50,10 @@ jobs:
           - assets:
               - Chart.yaml
             message: "chore(release): update chart for ${nextRelease.version}"
+      SEMANTIC_RELEASE_CONFIG_HELM: |
+        - - semantic-release-helm
+          - chartPath: .
+            onlyUpdateVersion: true
 
     steps:
       - name: Checkout repository
@@ -68,7 +72,8 @@ jobs:
             @semantic-release/changelog@6.0.3 \
             @semantic-release/git@10.0.1 \
             @semantic-release/github@11.0.1 \
-            semantic-release-monorepo@8.0.2
+            semantic-release-monorepo@8.0.2 \
+            semantic-release-helm@2.2.0
 
       # -----------------------------------
       # SINGLE REPO MODE
@@ -83,6 +88,9 @@ jobs:
             printf '%s\n' "${SEMANTIC_RELEASE_CONFIG_BASE}" >> .releaserc.yaml
           else
             printf '%s\n' "${SEMANTIC_RELEASE_CONFIG_BASE}" > .releaserc.yaml
+          fi
+          if [ -f "Chart.yaml" ]; then
+            echo "${SEMANTIC_RELEASE_CONFIG_HELM}" | sed 's/^/  /' >> .releaserc.yaml
           fi
           echo "${SEMANTIC_RELEASE_CONFIG_GIT}" | sed 's/^/  /' >> .releaserc.yaml
           echo "{\"name\":\"${GITHUB_REPOSITORY}\"}" > package.json
@@ -119,7 +127,10 @@ jobs:
                 # Create `.releaserc.yaml` with semantic-release configuration
                 echo "${SEMANTIC_RELEASE_CONFIG_BASE}" > .releaserc.yaml
                 echo "${SEMANTIC_RELEASE_CONFIG_GIT}" | sed 's/^/  /' >> .releaserc.yaml
-                cat .releaserc.yaml
+                if [ -f "Chart.yaml" ]; then
+                  echo "${SEMANTIC_RELEASE_CONFIG_HELM}" | sed 's/^/  /' >> .releaserc.yaml
+                fi
+
                 # It is required to have `package.json` with the package name for changelog generation
                 echo "{\"name\": \"$package_name\"}" > package.json
                 echo "********************************************************************************"
