@@ -36,6 +36,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       SEMANTIC_RELEASE_TAG_FORMAT: ${{ inputs.tag_format || '' }}
       SEMANTIC_RELEASE_MONOREPO_DIRS: ${{ inputs.monorepo_dirs || '' }}
+      SEMANTIC_RELEASE_RELEASE_DIRS: ${{ inputs.release_dirs || '' }}
       SEMANTIC_RELEASE_CONFIG_BASE: |
         branches:
           - main
